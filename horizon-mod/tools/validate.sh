@@ -4,11 +4,13 @@
 # trust flag is passed — that stays the player's call in the launcher.
 set -euo pipefail
 
-WORK=/c/Users/Den/Desktop/mybot/.hz
-MODS=/c/Users/Den/Desktop/mybot/e4steam-rs/horizon-mod/mixins
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# The pinned source and the built CLI live here; the repo moves, this cache should not.
+WORK=${HZ_WORK:-$HOME/.cache/e4steam-hz}
+MODS=${E4STEAM_MODS:-$HERE/mixins}
 HORIZON_REV=c9d474dd9116e84c243f8992d75c11314df56f06
 MIXINS_REV=d9c83d7096b7ea5b83678da2efdfd6161f74997e
-export PATH="/c/Users/Den/.cargo/bin:$PATH"
+[ -d "$HOME/.cargo/bin" ] && export PATH="$HOME/.cargo/bin:$PATH"
 
 mkdir -p "$WORK"
 cd "$WORK"

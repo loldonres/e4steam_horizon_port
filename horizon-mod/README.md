@@ -1,143 +1,167 @@
-# e4steam — нативный мод Horizon
+# e4steam — the native Horizon mod
 
-Один файл `.hnmod`: Rust-мод, который Horizon собирает вместе с игрой. После установки
-в чате появляется `/steam` — тот же интерфейс, что у Java-мода
-[e4steam](https://github.com/Kamilhik/e4steam), и тот же wire-протокол `E4ST` v4, поэтому
-хост на Horizon и гость на NeoForge/Fabric работают в одном лобби Steam.
+[English](README.md) · [Русский](README.ru.md)
 
-Sidecar (`../cli`, бинарник `e4steam-rs.exe`) делает то же самое снаружи игры. Мод и sidecar —
-две оболочки одного движка `mixins/e4steam/engine`; **одновременно их запускать нельзя**: один
-Steam-аккаунт не держит два контекста и два лобби на канале 480.
+One `.hnmod` file: a Rust mod that Horizon compiles into the game. After you install and build it,
+`/steam` appears in the chat box — the same surface as the Java mod
+[e4steam](https://github.com/Kamilhik/e4steam) and the same `E4ST` v4 wire protocol, so a Horizon
+host and a NeoForge/Fabric guest share one Steam lobby.
 
-## Готовый файл
+Player-level setup (requirements, quick start, troubleshooting) lives in the
+[top-level README](../README.md). This file is about how the bundle is built and what it changes.
 
-`target/e4steam-0.1.0.hnmod` — 20 файлов, 58 725 Б, SHA-256
-`5d97f590c4d6d437fa538333022a4285110d65582a3591e142f39e1320df01eb`.
+> Native mods are Rust inside your game binary: unsandboxed, full access to your computer. The
+> Horizon launcher asks you to confirm that with `--trust-native-code`, and that confirmation is
+> yours to give — scripts and assistants in this repository never pass it.
 
-Сборка воспроизводима: те же исходники дают те же байты (даты в zip фиксированы, порядок
-файлов отсортирован).
+## The built file
 
-| Что закреплено | Значение |
+`target/e4steam-0.1.0.hnmod` — 20 files, 58 777 bytes, SHA-256
+`0116f86264261810b4c7c87188a405f764a9117cd64d7bf9f9cfbeecd737ad7d`.
+
+Reproducible: the same sources give the same bytes. The packager fixes the zip timestamps to
+2026-01-01, sorts entries, and pins the file modes.
+
+| Pinned | Value |
 |---|---|
-| Horizon | `c9d474dd9116e84c243f8992d75c11314df56f06` |
-| horizon-mixins | `d9c83d7096b7ea5b83678da2efdfd6161f74997e` |
+| Horizon commit | `c9d474dd9116e84c243f8992d75c11314df56f06` |
+| horizon-mixins commit | `d9c83d7096b7ea5b83678da2efdfd6161f74997e` |
 | Minecraft | `26.3` (protocol 777) |
-| `crates/horizon-client/src/game.rs` | sha256 `4ab99203…e0d3e` (в `compatibility.json`) |
+| `crates/horizon-client/src/game.rs` | sha256 `4ab99203…e0d3e`, in `compatibility.json` |
 
-Пин на конкретный коммит, а не на `"hooks": N`, — намеренный: мод читает приватное поле
-`Game.lan`, чтобы узнать порт LAN-мира, а это не стабильный API хук-пойнтов. На другом
-коммите сборка честно упадёт, а не соберёт молча сломанное.
+Pinning a commit instead of declaring `"hooks": N` is deliberate: the payload reads Horizon's
+private `Game.lan` field to learn the LAN port, which is not part of the stable hook-point API. On
+a different commit the build fails loudly rather than quietly producing something half-broken.
 
-## Установка
+## Install
 
-Просто бросить файл в папку недостаточно: launcher держит список включённых нативных модов в
-`native-mods.json` инстанса, а собирает их сам — на том коммите Horizon, который мод закрепил.
+Dropping the file into a folder is not enough: the launcher keeps the enabled native mods in the
+instance's `native-mods.json` and builds them itself, on the commit the mod pins.
 
-1. Horizon → страница **Mods**, выбери инстанс.
-2. Установи мод: из реестра/GitHub, если он опубликован, или укажи `native-build` на папку с
-   бандлом (`mixins/e4steam/`) либо на распакованный `.hnmod`:
+1. Horizon → **Mods** → pick the instance.
+2. Install it — from the registry or from GitHub once published, or point `native-build` at the
+   bundle folder (`mixins/e4steam/`) or an unpacked `.hnmod`:
 
    ```sh
    horizon-launcher native-build mixins/e4steam --instance NAME --trust-native-code
    ```
 
-   Без `FOLDER` команда берёт нативные моды, включённые в инстансе. В окне то же самое делает
-   **Build** → «I trust these mods: build».
-3. Флаг доверия — решение игрока: нативные моды не изолированы и работают с полным доступом к
-   компьютеру. Скрипты репозитория его не подставляют.
+   With no `FOLDER` it builds the native mods enabled in the instance. In the window this is the
+   **Build** button and «I trust these mods: build».
+3. Decide for yourself whether you trust the code before you press it.
 
-Установленные лежат в `<instance>/horizon-native-mods/` (в окне — **Open folder**). Первая
-сборка скачивает собственный Rust и MinGW launcher'а и занимает 20–30 минут; дальше играет
-кэш. Получается версия вида `native-<commit>-<key>`, и она не смешивается с модами,
-собранными на других коммитах.
+Installed mods end up in `<instance>/horizon-native-mods/` (**Open folder** in the window). The
+first build downloads the launcher's own Rust and MinGW and takes 20–30 minutes; afterwards the
+cache does the work. The result is a version named `native-<commit>-<key>`, which is not mixed with
+mods built on other commits. While iterating on the mod, `horizon-launcher settings native-profile
+dev` rebuilds about 6× faster.
 
-Чтобы правки собирались быстрее: `horizon-launcher settings native-profile dev`.
+## Steam inside the game process
 
-## Steam со стороны игры
+Horizon's own «Play with friends» is TCP/STUN, not Steam, so the game process carries no Steamworks
+context and this mod can own one. Three things still have to be true:
 
-Игровой процесс сам подгружает Steamworks (собственная «Play with friends» в Horizon — это
-TCP/STUN, не Steam), поэтому нужно три вещи.
+- **`steam_api64.dll`** must be reachable by the game process. Search order: the
+  `E4STEAM_STEAM_API` environment variable (full path), beside the game executable, in a `steam/`
+  folder beside it, copies next to installed games in your Steam libraries, then the ordinary
+  Windows search. Valve's DLL is not redistributed here — take it from your own Steam.
+- **`steam_appid.txt`** with `480` (the Steamworks test app id, the same one the Java mod uses) is
+  written by the mod into the working folder or beside the executable. If that folder is
+  read-only, place the file yourself.
+- The **Steam client** runs and is logged in; the friends list comes from it.
 
-- **`steam_api64.dll`** должна быть доступна процессу игры. Порядок поиска: `E4STEAM_STEAM_API`
-  (полный путь к dll), рядом с exe игры и в подпапке `steam/`, копии рядом с установленными
-  играми в библиотеках Steam, затем обычный поиск Windows (Steam-каталог в PATH).
-  Valve-овскую dll мы не распространяем — возьми её из своего Steam.
-- **`steam_appid.txt`** со строкой `480` (test AppID, тот же, что у Java-мода) мод пишет сам
-  в рабочий каталог или рядом с exe. Если каталог только для чтения, положи файл вручную.
-- Steam-клиент должен быть запущен и залогинен; список друзей приходит из него.
+`/steam status` reports which of these is missing, in words rather than a stack trace.
 
-`/steam status` скажет, что из этого не выполнено, словами — без стектрейсов.
+## How it is put into the game
 
-## Команды
+The bundle is a horizon-mixins source bundle — Rust plus a manifest, staged into Horizon's source
+before the game is compiled. `mixins/e4steam/horizon-mixin.toml` declares:
 
-```
-/steam host [--port N] [--access friends|invite|custom|local] [--discover MS] [--minecraft V]
-/steam join [<invite code>|lobby <id>] [--port N] [--minecraft V]
-/steam status
-/steam stop
-```
+| Piece | What it does |
+|---|---|
+| `[[crate]] engine` | `e4steam-engine` becomes a dependency of `horizon-client`, staged to `native-crates/e4steam/engine/`. Its only external dependency is `flate2`, which is already in Horizon's `Cargo.lock` |
+| `[[module]] runtime` | `runtime.rs` is emitted into `crates/horizon-client/src/game.rs` as `pub(crate) mod e4steam`, so it is a child of `crate::game` and may touch private game state (`Game.lan`) and the `pub(super)` hook helpers |
+| `[[injection]] command` | HEAD of the `command` hook: takes `/steam …` out of chat before the server sees an unknown command |
+| `[[injection]] commands` | HEAD of the `commands` hook: adds `steam` to the chat box's completion list |
+| `[[injection]] frame` | HEAD of the `frame` hook: drains the Steam thread's output into chat |
 
-Хост — для мира, уже открытого по LAN (Open to LAN): порт берётся из multicast-анонса Horizon
-`224.0.2.60:4445`, `--port` перебивает поиск, `--discover` меняет время ожидания (до
-60 000 мс). Доступ по умолчанию `friends`.
+Each injection calls a one-line private helper (`command.rs`, `commands.rs`, `frame.rs`) — the shape
+horizon-mixins requires — and the helper forwards to `crate::game::e4steam::on_*`. Those entry points
+are `pub(super)`, not `pub(crate)`: `Game` is private to `crate::game`, so a crate-wide signature
+would name a type less visible than the function.
 
-Гость получает `127.0.0.1:<порт>` — вставлять в Multiplayer → Direct Connect. Код инвайта
-`s-xxxxxxxxx-yyyyyyyy.steam` из оверлея Steam или `join lobby <id>`; голый `/steam join`
-ждёт инвайта.
+All real work lives in `mixins/e4steam/engine` and on **its own thread**: the Steamworks Flat API is
+not thread-safe and `Runtime::tick` must keep running on the thread that owns the context, so the
+game loop only pushes commands into a channel and pulls lines back out. Nothing in the mod blocks
+the client.
 
-Ответы мода приходят строками в чат, а не в консоль: их печатает хук `frame`, сеть живёт на
-отдельном потоке и игровой цикл не блокирует.
-
-## Кросс-плей
-
-С Java-модом 0.3.2/0.3.4 совпадают: версия кадра `4`, длина и флаги, zlib-рамка в `DATA`,
-канал 480, метаданные лобби (`e4steam_minecraft` сравнивается посимвольно), токен инвайта
-(16 байт, проверка постоянным временем), лимит 7 гостей. Подробности — `../re/PROTOCOL.md`.
-
-Гость с другой строкой версии отклоняется до соединения.
-
-## Сборка из исходников
+## Building and validating
 
 ```sh
-cargo test --workspace          # 85 тестов; железо и второй аккаунт не нужны
-python tools/package.py         # -> target/e4steam-<ver>.hnmod и его sha256
-bash tools/validate.sh          # настоящие horizon-mixins plan + apply
+cargo test --workspace          # 85 tests; no hardware, no second Steam account
+python tools/package.py         # -> target/e4steam-<ver>.hnmod and its sha256
+bash tools/validate.sh          # real horizon-mixins plan + apply on the pinned source
 ```
 
-`validate.sh` берёт исходники Horizon и horizon-mixins ровно по закреплённым коммитам в
-`../../.hz`, прогоняет `plan` и `apply` — они только подготавливают исходники игры, ничего
-не компилируют и не запускают, поэтому флаг доверия там не нужен, — и печатает форму плана:
-3 впрыска, 1 модуль, 1 крейт.
+`validate.sh` fetches Horizon and horizon-mixins at exactly the pinned commits into a cache folder
+(`~/.cache/e4steam-hz`, override with `HZ_WORK`; the bundle path with `E4STEAM_MODS`),
+runs `plan`, then `apply`, and prints the shape of the plan — it must be **3 injections**
+(`frame`, `command`, `commands`), **1 module** (`e4steam`), **1 crate** (`engine`) — and greps the
+staged source so you can see the injected module and helpers in `game.rs` and
+`game/native_hooks.rs`. Those two subcommands only transform source: nothing is compiled or run,
+which is why they need no trust flag. `horizon-mixins check` does compile the injected mod, and that
+is the player's call.
 
-`check/` — фикстура: мок `crate::game` с той же геометрией, что в Horizon, поэтому опечатки в
-`runtime.rs` и хелперах видны в `cargo test`, а не в середине часовой сборки игры. Полную
-компиляцию впрыснутого мода делает `horizon-mixins check` — это уже сборка нативного кода,
-и запускает её игрок.
+`check/` is the reason the payload type-checks in seconds instead of an hour: a mock of `crate::game`
+with the same geometry as Horizon (private `Game`, `lan: Option<LanHost>`, `pub(super)` helpers,
+`include!` of the bundle's own files), so a typo in `runtime.rs` or a helper shows up in `cargo test`.
 
-`tools/package.py` попутно проверяет правила реестра: в архив только `.rs`/`.toml` и
-текстовые файлы крейта, зависимости только те, что уже лежат в `Cargo.lock` Horizon, запрет
-`[workspace]`, `[patch]`, `[replace]`, `[profile]` и path-зависимостей, лимиты 512 файлов и
-64 МиБ. Отказ видно локально, а не в реестре.
+`tools/package.py` also enforces the registry's bundle rules locally, so a refusal happens on your
+machine instead of in review: only `.rs`, `.toml` and the crate's text files go in; dependencies must
+already be in Horizon's `Cargo.lock`; `[workspace]`, `[patch]`, `[replace]`, `[profile]`, path and git
+dependencies are forbidden; ids must be lowercase `[a-z0-9_]`; the manifest pin and
+`compatibility.json` must agree; 512 files and 64 MiB unpacked at most.
 
-## Структура
+## Re-pinning to a newer Horizon
+
+1. Put the new commit in `[compatibility] horizon_revision` (`mixins/e4steam/horizon-mixin.toml`) and in
+   `compatibility.json`, and refresh `source_sha256` for `crates/horizon-client/src/game.rs`.
+2. Check that `Game.lan` and the three hook signatures still exist — `command`/`commands` are API 35+
+   hooks, `frame` is v1.
+3. `bash tools/validate.sh`, then `cargo test --workspace`.
+4. Bump `version` in `horizon-mixin.toml`, `python tools/package.py`, and publish the new `.hnmod` as a
+   GitHub release asset. The registry takes a release with a `.hnmod` asset as a version.
+
+## Cross-play
+
+Matches e4steam 0.3.2 / 0.3.4: wire version `4`, frame lengths and flags, the zlib envelope inside
+`DATA`, lobby metadata (`e4steam_minecraft`, compared character by character), channel 480, the
+16-byte invite token checked in constant time, 7 guests, the 30 s handshake deadline and the retry
+and backpressure timings. The byte-level contract is [`../re/PROTOCOL.md`](../re/PROTOCOL.md). A
+guest whose version string differs is refused before any connection.
+
+## Layout
 
 ```
 mixins/e4steam/
   horizon-mixin.toml     [mod], [compatibility], [[crate]], [[module]], 3 [[injection]]
-  runtime.rs             payload -> crate::game::e4steam
-  command.rs commands.rs frame.rs   по одному приватному fn-хелперу на впрыск
-  engine/                e4steam-engine: кодек E4ST, Steamworks Flat API, мост, /steam
-compatibility.json       пины и sha256 game.rs
-tools/                   package.py, validate.sh
-check/                   фикстура геометрии для cargo test
+  runtime.rs             the payload, emitted as crate::game::e4steam
+  command.rs commands.rs frame.rs   one private helper fn per injection
+  engine/                e4steam-engine: E4ST codec, Steamworks Flat API, bridge, /steam grammar
+compatibility.json       pins and the sha256 of game.rs
+tools/                   package.py (reproducible archive), validate.sh (plan + apply)
+check/                   the crate::game geometry fixture for cargo test
 ```
 
-## Безопасность
+## Security
 
-Инвайт-код `s-…​.steam` — это доступ в мир. Не выкладывай его в логи и скриншоты. Сообщения
-мода маскируют чужие SteamID, адреса подключения и именованные секреты (`token`, `ticket`,
-`password`, `secret`, `cookie`, `authorization`, `gslt`) до того, как попадут в чат.
+The invite code `s-….steam` **is** access to your world: never publish it in a log or a screenshot.
+The mod masks other players' SteamIDs, connect addresses and named secrets (`token`, `ticket`,
+`password`, `secret`, `cookie`, `authorization`, `gslt`) in its own messages before they reach chat.
 
-## Лицензия
+## Licence
 
-Apache-2.0; см. `../NOTICE.md` и `../THIRD_PARTY_NOTICES-e4steam.md`.
+Apache-2.0; see [`../NOTICE.md`](../NOTICE.md) and
+[`../THIRD_PARTY_NOTICES-e4steam.md`](../THIRD_PARTY_NOTICES-e4steam.md). This is a port of the
+Java mod [e4steam](https://github.com/Kamilhik/e4steam) by Kamilchik (Apache-2.0), which is itself
+derived from e4mc (MIT).

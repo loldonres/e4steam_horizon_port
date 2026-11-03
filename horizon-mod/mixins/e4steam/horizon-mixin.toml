@@ -8,8 +8,9 @@ id = "e4steam"
 version = "0.1.0"
 priority = 100
 
-# The Nightly this was built and played on. Hook points keep their contract, so a newer Nightly
-# normally applies too; the pin is what horizon-mixins refuses to plan against otherwise.
+# The Nightly this was built and played on. Hook points keep their contract across releases, but the
+# payload also reads `Game`'s private `lan` field, which is not part of that contract — hence a commit
+# pin instead of `"hooks"`, so a drifted Horizon fails the plan instead of building something broken.
 [compatibility]
 horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
 
