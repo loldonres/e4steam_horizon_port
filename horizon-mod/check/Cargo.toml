@@ -1,0 +1,10 @@
+[package]
+name = "e4steam-game-check"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Type-checks the files horizon-mixins injects into Horizon against a stand-in for crate::game"
+publish = false
+
+[dependencies]
+e4steam-engine = { path = "../mixins/e4steam/engine" }

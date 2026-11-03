@@ -1,0 +1,33 @@
+modLoader = "javafml"
+loaderVersion = "*"
+license = "Apache-2.0"
+
+[[mods]]
+modId = "e4steam"
+version = "0.3.2"
+displayName = "e4steam"
+logoFile = "assets/e4steam_minecraft/icon.png"
+displayTest = "IGNORE_ALL_VERSION"
+authors = "Kamilchik"
+description = '''
+Share an integrated Minecraft LAN world through Steam P2P and Valve relays.
+Uses the permanent App ID 480 workflow; both players need the mod and Steam.
+Created by Kamilchik.
+'''
+
+[[mixins]]
+config = "e4steam.mixins.json"
+
+[[dependencies.e4steam]]
+modId = "neoforge"
+mandatory = true
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.e4steam]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.2,26.3)"
+ordering = "NONE"
+side = "BOTH"

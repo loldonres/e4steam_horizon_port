@@ -1,0 +1,43 @@
+package com.codedisaster.steamworks;
+
+class SteamFriendsCallbackAdapter extends SteamCallbackAdapter<SteamFriendsCallback> {
+   private static final SteamFriends.PersonaChange[] personaChangeValues = SteamFriends.PersonaChange.values();
+
+   SteamFriendsCallbackAdapter(SteamFriendsCallback callback) {
+      super(callback);
+   }
+
+   void onPersonaStateChange(long steamID, int changeFlags) {
+      SteamID id = new SteamID(steamID);
+
+      for (SteamFriends.PersonaChange value : personaChangeValues) {
+         if (SteamFriends.PersonaChange.isSet(value, changeFlags)) {
+            this.callback.onPersonaStateChange(id, value);
+         }
+      }
+   }
+
+   void onGameOverlayActivated(boolean active, boolean userInitiated, int appID) {
+      this.callback.onGameOverlayActivated(active, userInitiated, appID);
+   }
+
+   void onGameLobbyJoinRequested(long steamIDLobby, long steamIDFriend) {
+      this.callback.onGameLobbyJoinRequested(new SteamID(steamIDLobby), new SteamID(steamIDFriend));
+   }
+
+   void onAvatarImageLoaded(long steamID, int image, int width, int height) {
+      this.callback.onAvatarImageLoaded(new SteamID(steamID), image, width, height);
+   }
+
+   void onFriendRichPresenceUpdate(long steamIDFriend, int appID) {
+      this.callback.onFriendRichPresenceUpdate(new SteamID(steamIDFriend), appID);
+   }
+
+   void onGameRichPresenceJoinRequested(long steamIDFriend, String connect) {
+      this.callback.onGameRichPresenceJoinRequested(new SteamID(steamIDFriend), connect);
+   }
+
+   void onGameServerChangeRequested(String server, String password) {
+      this.callback.onGameServerChangeRequested(server, password);
+   }
+}

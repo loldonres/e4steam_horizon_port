@@ -1,0 +1,100 @@
+package link.e4steam.mixin;
+
+import link.e4steam.E4steamClient;
+import link.e4steam.MinecraftUiCompat;
+import link.e4steam.Mirror;
+import link.e4steam.steam.SteamSession;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin({PauseScreen.class})
+public abstract class PauseScreenMixin extends Screen {
+   @Unique
+   private Button e4steam$inviteButton;
+
+   protected PauseScreenMixin(Component title) {
+      super(title);
+   }
+
+   @Inject(
+      method = {"init()V"},
+      at = {@At("TAIL")}
+   )
+   private void e4steam$addInviteButton(CallbackInfo ci) {
+      SteamSession session = E4steamClient.session;
+      if (session != null
+         && session.state != SteamSession.State.STOPPED
+         && session.state != SteamSession.State.STOPPING
+         && session.state != SteamSession.State.UNHEALTHY) {
+         this.e4steam$inviteButton = (Button)this.addRenderableWidget(
+            MinecraftUiCompat.button(
+               Mirror.translatable("text.e4steam_minecraft.inviteFriends"),
+               button -> this.e4steam$openInviteOverlay(),
+               Math.max(4, this.width - 154),
+               6,
+               150,
+               20
+            )
+         );
+         MinecraftUiCompat.tooltip(this.e4steam$inviteButton, Mirror.translatable("text.e4steam_minecraft.inviteFriendsHelp"));
+         this.e4steam$refreshInviteButton();
+      }
+   }
+
+   @Unique
+   private void e4steam$openInviteOverlay() {
+      Button button = this.e4steam$inviteButton;
+      SteamSession current = E4steamClient.session;
+      if (button != null && current != null && current.state == SteamSession.State.STARTED) {
+         button.active = false;
+         button.setMessage(Mirror.translatable("text.e4steam_minecraft.steamOpening"));
+         current.openInviteOverlayAsync().whenComplete((ignored, throwable) -> {
+            if (this.minecraft != null) {
+               this.minecraft.execute(() -> {
+                  if (throwable != null) {
+                     Throwable cause = throwable;
+
+                     while (cause.getCause() != null) {
+                        cause = cause.getCause();
+                     }
+
+                     E4steamClient.LOGGER.warn("Could not open the Steam invitation overlay", cause);
+                     MinecraftUiCompat.addChatMessage(this.minecraft, Mirror.translatable("text.e4steam_minecraft.overlayUnavailable"));
+                  }
+
+                  this.e4steam$refreshInviteButton();
+               });
+            }
+         });
+      } else {
+         this.e4steam$refreshInviteButton();
+      }
+   }
+
+   @Unique
+   private void e4steam$refreshInviteButton() {
+      Button button = this.e4steam$inviteButton;
+      if (button != null) {
+         SteamSession current = E4steamClient.session;
+         if (current != null
+            && current.state != SteamSession.State.STOPPED
+            && current.state != SteamSession.State.STOPPING
+            && current.state != SteamSession.State.UNHEALTHY) {
+            button.visible = true;
+            boolean ready = current.state == SteamSession.State.STARTED;
+            button.active = ready;
+            button.setMessage(Mirror.translatable(ready ? "text.e4steam_minecraft.inviteFriends" : "text.e4steam_minecraft.steamOpening"));
+         } else {
+            button.visible = false;
+            button.active = false;
+         }
+      }
+   }
+}

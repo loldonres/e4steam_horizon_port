@@ -1,0 +1,15 @@
+[package]
+name = "e4steam-cli"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "The e4steam sidecar: a console bridge between a local Minecraft client and Steam P2P"
+
+[[bin]]
+name = "e4steam-rs"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ctrlc = "3"
+e4steam-engine = { path = "../horizon-mod/mixins/e4steam/engine" }

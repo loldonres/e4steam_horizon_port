@@ -1,0 +1,208 @@
+{
+  "sha": "cc8ce2d896782099abfa9f0abf26fa80c9e4bddb",
+  "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/cc8ce2d896782099abfa9f0abf26fa80c9e4bddb",
+  "tree": [
+    {
+      "path": ".github",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "ea5b17e04e314a5d3edc6fcd70f7741b777f25ba",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/ea5b17e04e314a5d3edc6fcd70f7741b777f25ba"
+    },
+    {
+      "path": ".github/workflows",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "ffa263b8aa1bca40d91a084e7e4986371817cc0c",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/ffa263b8aa1bca40d91a084e7e4986371817cc0c"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e395858ccca74f5d670e6d88d8c5335d68ac9d41",
+      "size": 1022,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/e395858ccca74f5d670e6d88d8c5335d68ac9d41"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "10a48a6d33d2dc2ca83b8c2d37e80c361bbcb995",
+      "size": 28,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/10a48a6d33d2dc2ca83b8c2d37e80c361bbcb995"
+    },
+    {
+      "path": "AGENTS.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b4f3e038d56cf0c457be48cde54a6b30bc585f5",
+      "size": 872,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/4b4f3e038d56cf0c457be48cde54a6b30bc585f5"
+    },
+    {
+      "path": "Cargo.lock",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "18ae9feebf078aa81a6cddfa3bb8c769118ba169",
+      "size": 3262,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/18ae9feebf078aa81a6cddfa3bb8c769118ba169"
+    },
+    {
+      "path": "Cargo.toml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1f43362b7e557013b68c0bfe4a1be058bc722d19",
+      "size": 343,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/1f43362b7e557013b68c0bfe4a1be058bc722d19"
+    },
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "573cac6b1d06bdf7156922761814cb339cb3b3e3",
+      "size": 1138,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/573cac6b1d06bdf7156922761814cb339cb3b3e3"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f9da6e22747c14169b3d9e40049f625f54981fe",
+      "size": 8965,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/6f9da6e22747c14169b3d9e40049f625f54981fe"
+    },
+    {
+      "path": "VALIDATION.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ce94751fb1e5ac85b7c66524323aa1f22a76b280",
+      "size": 1952,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/ce94751fb1e5ac85b7c66524323aa1f22a76b280"
+    },
+    {
+      "path": "compatibility.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "67bf30859ea0621fc0f3ab28a27f368df044e9ed",
+      "size": 445,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/67bf30859ea0621fc0f3ab28a27f368df044e9ed"
+    },
+    {
+      "path": "mixins",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8422340ccbb0243e08fedf74a6e3087766a2a3ca",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/8422340ccbb0243e08fedf74a6e3087766a2a3ca"
+    },
+    {
+      "path": "mixins/example_mod",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "189de9484e5c6a492c3c82fca5521a5638da951c",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/189de9484e5c6a492c3c82fca5521a5638da951c"
+    },
+    {
+      "path": "mixins/example_mod/break.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "677c6d36a62d53aa8b5bc99ad57401a23a780d50",
+      "size": 164,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/677c6d36a62d53aa8b5bc99ad57401a23a780d50"
+    },
+    {
+      "path": "mixins/example_mod/horizon-mixin.toml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73c6ac9d36b38dd785c3833aa80a0b067d05da1e",
+      "size": 435,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/73c6ac9d36b38dd785c3833aa80a0b067d05da1e"
+    },
+    {
+      "path": "mixins/example_mod/runtime.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa37282f90a903aad992172628eac4747d69df35",
+      "size": 662,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/aa37282f90a903aad992172628eac4747d69df35"
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3417ee590341edc47a046d94e77ee9bee2b33bf4",
+      "size": 86,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/3417ee590341edc47a046d94e77ee9bee2b33bf4"
+    },
+    {
+      "path": "tools",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f91f07fc23bb32ff78a8e0346f9647502ef53834",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/f91f07fc23bb32ff78a8e0346f9647502ef53834"
+    },
+    {
+      "path": "tools/audit",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f8a9fa9f9ef2ca685fd0f96adca836d3dd4743f0",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/f8a9fa9f9ef2ca685fd0f96adca836d3dd4743f0"
+    },
+    {
+      "path": "tools/audit/Cargo.toml",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "36445c2989d9cc7c35a187531edfde96e74c69c1",
+      "size": 220,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/36445c2989d9cc7c35a187531edfde96e74c69c1"
+    },
+    {
+      "path": "tools/audit/src",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "980a6716a1c9826282a644d75121f448c8ab39ec",
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/trees/980a6716a1c9826282a644d75121f448c8ab39ec"
+    },
+    {
+      "path": "tools/audit/src/main.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa8ca79f470be30d1844145b8a60cd7d7aee9cc9",
+      "size": 3794,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/aa8ca79f470be30d1844145b8a60cd7d7aee9cc9"
+    },
+    {
+      "path": "tools/horizon.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "07932d6aac10c3d9ed99e1b1e88ede57d8a4e50d",
+      "size": 7376,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/07932d6aac10c3d9ed99e1b1e88ede57d8a4e50d"
+    },
+    {
+      "path": "tools/package.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3670f27644f1d49514a360e728f286f9b5681d5b",
+      "size": 2629,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/3670f27644f1d49514a360e728f286f9b5681d5b"
+    },
+    {
+      "path": "tools/test_stage.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6687afe627453a6fe6a1dde45bf34a7fdb4ea02a",
+      "size": 1943,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/6687afe627453a6fe6a1dde45bf34a7fdb4ea02a"
+    },
+    {
+      "path": "tools/test_template.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "584a463249511ad1d1fb423e77a0c4fc75726b6a",
+      "size": 4560,
+      "url": "https://api.github.com/repos/horizon-rust/horizon-native-mod-template/git/blobs/584a463249511ad1d1fb423e77a0c4fc75726b6a"
+    }
+  ],
+  "truncated": false
+}

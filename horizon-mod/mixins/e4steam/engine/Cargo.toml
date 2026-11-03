@@ -1,0 +1,11 @@
+[package]
+name = "e4steam-engine"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Steam P2P transport for Minecraft LAN worlds, wire-compatible with the e4steam Java mod; the Horizon native mod's crate"
+
+[dependencies]
+# Only crates already in Horizon's Cargo.lock: a bundle crate names its dependency by requirement
+# and horizon-mixins refuses anything the lock lacks. 1.1.10 is what Horizon locks today.
+flate2 = "1"

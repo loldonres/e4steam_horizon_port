@@ -1,0 +1,59 @@
+# e4steam as a Horizon native mod: one support module, three hook points and the mod's own crate.
+#
+# The bundle folder is named after `[mod] id` (the registry finds it there), and the id takes only
+# lowercase letters, digits and `_`.
+
+[mod]
+id = "e4steam"
+version = "0.1.0"
+priority = 100
+
+# The Nightly this was built and played on. Hook points keep their contract, so a newer Nightly
+# normally applies too; the pin is what horizon-mixins refuses to plan against otherwise.
+[compatibility]
+horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
+
+# The protocol, the Steamworks binding and the bridge. Staged as a workspace member and added to
+# horizon-client's dependencies, so the game crate reaches it as `e4steam_engine`.
+[[crate]]
+id = "engine"
+path = "engine"
+
+# Injected into `crate::game` as a same-crate module: it sees `Game`'s private `lan` field and the
+# `pub(super)` helpers, which is why the glue lives here rather than in another crate.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "e4steam"
+source = "runtime.rs"
+
+# `/steam host|join|status|stop`, before the server and Horizon's commands see the line (API 35).
+[[injection]]
+id = "command"
+hook = "command"
+hook_version = 1
+kind = "HEAD"
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "ran" },
+]
+
+# The chat box colours, completes and lists `/steam` like the game's own commands.
+[[injection]]
+id = "commands"
+hook = "commands"
+hook_version = 1
+kind = "HEAD"
+helper = "commands.rs"
+bindings = [{ name = "names", ty = "&mut Vec<&'static str>", value = "commands" }]
+
+# Once a frame, in a world or not: the Steam thread's lines reach chat here.
+[[injection]]
+id = "frame"
+hook = "frame"
+hook_version = 1
+kind = "HEAD"
+helper = "frame.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

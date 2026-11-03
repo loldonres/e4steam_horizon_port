@@ -1,0 +1,8 @@
+package link.e4steam.api.runtime;
+
+public enum CompatibilityFlag {
+   LOADER_ADAPTER_PRESENT,
+   STEAM_CLIENT_BACKEND_AVAILABLE,
+   DEDICATED_BACKEND_AVAILABLE,
+   EXPERIMENTAL_COMBINATION;
+}
