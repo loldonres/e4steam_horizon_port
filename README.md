@@ -12,9 +12,9 @@ NeoForge or Fabric can join your Horizon world, and you can join theirs.
 
 **Two ways to run it, one engine:**
 
-| | Runs as | Commands are typed |
+| | Runs as | You drive it |
 |---|---|---|
-| **Native mod** (`horizon-mod/`) | part of the game, built by Horizon | in the chat box: `/steam …` |
+| **Native mod** (`horizon-mod/`) | part of the game, built by Horizon | **Esc → Options → Mods → e4steam → Settings** — a page of buttons; `/steam …` in chat also works |
 | **Sidecar** (`cli/`, `e4steam-rs.exe`) | a console window next to any Horizon | in that console: `e4steam-rs.exe host` |
 
 Run **one at a time**: a single Steam account does not hold two Steamworks contexts, and both
@@ -68,12 +68,37 @@ deliberately not a flag a script or an assistant presses on your behalf.
 
 Uninstall: remove it on the Mods page (or `horizon-launcher mods remove e4steam`) and rebuild.
 
+## The page in the pause menu
+
+**Esc → Options → Mods → e4steam → Settings.** Everything the mod can do is a button there, and
+nothing on the page needs a manual:
+
+| Button | What happens |
+|---|---|
+| **share this LAN world** | publishes the world you already opened to LAN — the port is found on its own |
+| **join a friend's world** | waits for a Steam invite; accept it in the overlay and the mod connects |
+| **access: friends — press to change** | cycles who gets in: friends → invite only → public → localhost only |
+| **stop hosting** / **leave the world** | closes the lobby, drops the bridges, clears the presence |
+| **show the invite code** | prints the code in chat — and a warning that the code is a password |
+| **direct connect 127.0.0.1:51234** | on the guest's page: the address to dial in Multiplayer |
+| **e4steam · hosting, 2 of 7 guests — press to hear the details** | the live state, said line by line in chat |
+| **how to use this** | the four steps, in chat |
+| **открыть это меню по-русски** | switches the page's own labels to Russian, and back |
+
+The page follows the state: while a world is shared, the access row explains that you have to stop
+first; when there is no LAN world yet, the first button says so instead of failing. The buttons are
+rebuilt when you open the page and after every press.
+
+`/steam` in chat is the same session, for anyone who prefers commands; the two never disagree,
+because both ask the same thread for the same thing.
+
 ## Host a world
 
 1. Start your world, press **Esc**, click **Open to LAN**.
-2. In chat: `/steam host`
+2. **Esc → Options → Mods → e4steam → Settings → share this LAN world** — or, in chat, `/steam host`.
 3. The mod finds the LAN port on its own and publishes a Steam lobby. Watch the chat lines.
-4. `/steam status` shows the invite code — `s-xxxxxxxxx-yyyyyyyy.steam`.
+4. Press the status button — or `/steam status` — to see the invite code,
+   `s-xxxxxxxxx-yyyyyyyy.steam`.
 
 Give that code to the people you want in. **Treat it like a password: whoever has it can join your
 world.** Do not paste it into a public channel, a screenshot, or a bug report.
@@ -81,13 +106,17 @@ world.** Do not paste it into a public channel, a screenshot, or a bug report.
 ## Join a world
 
 1. Install the mod and build, as above.
-2. In chat: `/steam join s-xxxxxxxxx-yyyyyyyy.steam` — or `join lobby <id>`, or a bare `join` to
-   wait for a Steam invite while you accept it in the overlay.
-3. The mod prints `127.0.0.1:<port>`. Open **Multiplayer → Direct Connect** and type that address.
+2. **Esc → Options → Mods → e4steam → Settings → join a friend's world** and accept their Steam
+   invite — or, in chat, `/steam join s-xxxxxxxxx-yyyyyyyy.steam` (a bare `join` waits for an
+   invite, `join lobby <id>` takes a lobby number).
+3. The mod prints `127.0.0.1:<port>`, and the page has a **direct connect 127.0.0.1:…** button that
+   prints it again. Open **Multiplayer → Direct Connect** and type that address.
 
 A friend on Java needs nothing extra from you: their e4steam mod does the same job on their side.
 
 ## Commands
+
+Every one of these has a button on the page; the flags are only reachable from chat.
 
 ```
 /steam host [--port N] [--access friends|invite|custom|local] [--discover MS] [--minecraft V]
@@ -115,7 +144,8 @@ A friend on Java needs nothing extra from you: their e4steam mod does the same j
 | `custom` | a public lobby with Steam's own membership check; for exotic setups |
 | `local` | no lobby is published at all; connect directly with the code |
 
-Up to **7 guests per host**, 64 bridges per process. The mod's messages appear in chat, in English.
+Up to **7 guests per host**, 64 bridges per process. The mod's messages appear in chat, in English;
+the page's own buttons follow the language you pick there.
 
 Running the sidecar instead? Same words, different shell: `e4steam-rs.exe host`,
 `e4steam-rs.exe join <code>`, `e4steam-rs.exe doctor` for a look at the DLL, the Steam login, the
@@ -134,8 +164,10 @@ No hidden network access — but this *is* a networking mod, so here is everythi
 - **Reads a LAN multicast announce** (`224.0.2.60:4445`) to find your world's port.
 - **Sees the SteamID64 of the peers** in the lobby: that is how the host recognises friends, just
   as in the Java mod. Chat output masks SteamIDs so they do not leak into screenshots.
-- **Writes one file**: `steam_appid.txt` (the single line `480`, the Steamworks test app id the
-  Java mod uses too) next to the game executable, or in the working folder.
+- **Writes two small files**: `steam_appid.txt` (the single line `480`, the Steamworks test app id the
+  Java mod uses too) next to the game executable or in the working folder, and `e4steam/lang` in
+  Horizon's own config folder — one line, `en` or `ru`, the language you left the page in. Delete it
+  and the page starts in English again.
 - **No telemetry, no analytics, no accounts, no passwords, no world files read or uploaded.**
   Nothing is sent anywhere except to the peers you are actually playing with.
 
@@ -149,6 +181,7 @@ No hidden network access — but this *is* a networking mod, so here is everythi
 | nothing about the LAN port after a few seconds | the announce did not arrive: pass `--port` from the LAN screen, or raise `--discover` |
 | `could not write steam_appid.txt` | the game folder is read-only; put a `steam_appid.txt` containing `480` beside the exe yourself |
 | the guest hangs, then gives up | the host is not sharing, the code is stale, or the guest's `--minecraft` differs from the host's string |
+| the page's first button reads **open the world to LAN, then press here** | Horizon has no LAN world to share yet: **Esc → Open to LAN**, then press it again |
 | the game never starts after a build | the mod pins a Horizon commit your instance does not play — see [Pinned versions](#pinned-versions) |
 | Windows Firewall asks | allow it for the game; Steam P2P itself needs no open ports |
 
@@ -160,7 +193,7 @@ the build fails loudly instead of producing something half-broken.
 
 | Pinned | Value |
 |---|---|
-| Horizon commit | `c9d474dd9116e84c243f8992d75c11314df56f06` |
+| Horizon commit | `aa27eca326db26e999d4e59d7899576016764b1e` (Nightly 2026-10-31) |
 | horizon-mixins commit | `d9c83d7096b7ea5b83678da2efdfd6161f74997e` |
 | Minecraft | `26.3` — protocol 777 |
 | Java mod it is compatible with | e4steam 0.3.2 / 0.3.4 |
@@ -200,7 +233,7 @@ Not done:
 - **Nickname/UUID aliasing** (`e4steam:steam-identity:v1:`) — Horizon derives the offline UUID from
   the nickname, so a friend keeps their identity only while the nickname stays.
 - **A live two-player Steam test** — the developer has one Steam account, so no host-and-guest
-  session on real Steam has ever been run here. Everything else is covered by 85 automated tests
+  session on real Steam has ever been run here. Everything else is covered by 104 automated tests
   over real loopback sockets. Treat a first join as an experiment, and tell us what breaks.
 
 ## Credit, licence, and the registry rules
@@ -225,7 +258,7 @@ Not done:
 
 ```sh
 cargo build --release                    # the sidecar: target/release/e4steam-rs.exe
-cargo test --workspace                   # 85 tests, no second account needed
+cargo test --workspace                   # 104 tests, no second account needed
 python horizon-mod/tools/package.py      # -> horizon-mod/target/e4steam-<ver>.hnmod + its sha256
 bash horizon-mod/tools/validate.sh       # real horizon-mixins plan + apply on the pinned source
 ```
@@ -234,8 +267,8 @@ bash horizon-mod/tools/validate.sh       # real horizon-mixins plan + apply on t
 compiled or run, so it needs no trust flag. Compiling the injected mod is `horizon-mixins check`
 or the launcher's **Build** button, and that stays the player's own decision.
 
-Layout — [`horizon-mod/README.md`](horizon-mod/README.md) goes deeper on the bundle and the three
-injections:
+Layout — [`horizon-mod/README.md`](horizon-mod/README.md) goes deeper on the bundle and the six
+injections (three for chat, three for the page):
 
 ```
 horizon-mod/mixins/e4steam/   the .hnmod bundle: manifest, injected payload, helpers

@@ -9,13 +9,14 @@ seconds, on this machine, instead of in the middle of a game build.
 
     python tools/package.py [--out DIR] [--horizon PATH]
 
-`--horizon` is a Horizon source export or clone at the pinned commit; the pinned export under `re/`
-is used when nothing is given, for its `Cargo.lock` (the allow list a bundle crate's dependencies
-must be inside) and its `native-hooks.json` (the hook catalog).
+`--horizon` is a Horizon source export or clone at the pinned commit. With nothing given, the export
+`tools/validate.sh` keeps in its cache is used, then `../re/horizon-docs` — for the `Cargo.lock` (the
+allow list a bundle crate's dependencies must be inside) and the `native-hooks.json` hook catalog.
 """
 import argparse
 import hashlib
 import json
+import os
 import re
 import tomllib
 import zipfile
@@ -130,7 +131,12 @@ def main():
     parser.add_argument("--horizon", help="Horizon source at the pinned commit (for Cargo.lock and native-hooks.json)")
     args = parser.parse_args()
 
-    horizon = Path(args.horizon) if args.horizon else ROOT.parent / "re" / "horizon-docs"
+    cache = Path(os.environ.get("HZ_WORK") or Path.home() / ".cache" / "e4steam-hz") / "src"
+    horizon = Path(args.horizon) if args.horizon else next(
+        (path for path in (cache, ROOT.parent / "re" / "horizon-docs")
+         if (path / "native-hooks.json").is_file()),
+        cache,
+    )
     locked = read_locked_packages(horizon)
     catalog = read_hook_catalog(horizon)
     if locked is None or catalog is None:

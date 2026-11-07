@@ -48,9 +48,11 @@ pub const RICH_PRESENCE_CONNECT: &str = "connect";
 pub const RICH_PRESENCE_CONNECT_PREFIX: &str = "e4steam-lobby:";
 pub const CHAT_ENTER_SUCCESS: u32 = 1;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Access {
     LocalOnly,
+    /// What the Java mod defaults to, and what a player who asks for nothing expects.
+    #[default]
     FriendsOnly,
     InviteOnly,
     Custom,
@@ -315,6 +317,24 @@ impl Runtime {
 
     pub fn is_running(&self) -> bool {
         matches!(self.status, Status::Running)
+    }
+
+    /// Whether this side shares a world rather than plays one, for the menu's labels.
+    pub fn is_host(&self) -> bool {
+        matches!(self.role, Role::Host { .. })
+    }
+
+    /// The access a host chose; a guest has no gate of its own.
+    pub fn access(&self) -> Option<Access> {
+        match self.role {
+            Role::Host { access, .. } => Some(access),
+            Role::Guest { .. } => None,
+        }
+    }
+
+    /// A guest handed no code, still waiting for Steam to give it a lobby.
+    pub fn awaits_invite(&self) -> bool {
+        matches!(self.lobby_phase, LobbyPhase::AwaitingInvite)
     }
 
     /// Bridges take the sink as a trait object, so the concrete `Sink` is coerced here.

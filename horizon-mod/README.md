@@ -3,7 +3,8 @@
 [English](README.md) · [Русский](README.ru.md)
 
 One `.hnmod` file: a Rust mod that Horizon compiles into the game. After you install and build it,
-`/steam` appears in the chat box — the same surface as the Java mod
+**Esc → Options → Mods → e4steam** opens a page of buttons, and `/steam` appears in the chat box for
+anyone who prefers commands — the same surface as the Java mod
 [e4steam](https://github.com/Kamilhik/e4steam) and the same `E4ST` v4 wire protocol, so a Horizon
 host and a NeoForge/Fabric guest share one Steam lobby.
 
@@ -16,18 +17,18 @@ Player-level setup (requirements, quick start, troubleshooting) lives in the
 
 ## The built file
 
-`target/e4steam-0.1.0.hnmod` — 20 files, 58 777 bytes, SHA-256
-`0116f86264261810b4c7c87188a405f764a9117cd64d7bf9f9cfbeecd737ad7d`.
+`target/e4steam-0.1.0.hnmod` — 24 files, 70 033 bytes, SHA-256
+`524739bf75bb131bdf142ddf713d74ad206b1d836f3b3cb2bc6a57059497a497`.
 
 Reproducible: the same sources give the same bytes. The packager fixes the zip timestamps to
 2026-01-01, sorts entries, and pins the file modes.
 
 | Pinned | Value |
 |---|---|
-| Horizon commit | `c9d474dd9116e84c243f8992d75c11314df56f06` |
+| Horizon commit | `aa27eca326db26e999d4e59d7899576016764b1e` (Nightly 2026-10-31, `NATIVE_HOOKS_API` 40) |
 | horizon-mixins commit | `d9c83d7096b7ea5b83678da2efdfd6161f74997e` |
 | Minecraft | `26.3` (protocol 777) |
-| `crates/horizon-client/src/game.rs` | sha256 `4ab99203…e0d3e`, in `compatibility.json` |
+| `crates/horizon-client/src/game.rs` | sha256 `b99ccd23…2c43`, in `compatibility.json` |
 
 Pinning a commit instead of declaring `"hooks": N` is deliberate: the payload reads Horizon's
 private `Game.lan` field to learn the LAN port, which is not part of the stable hook-point API. On
@@ -70,7 +71,8 @@ context and this mod can own one. Three things still have to be true:
   read-only, place the file yourself.
 - The **Steam client** runs and is logged in; the friends list comes from it.
 
-`/steam status` reports which of these is missing, in words rather than a stack trace.
+`/steam status` — or the page's status row — reports which of these is missing, in words rather than
+a stack trace, and the same reason stays on the page's row after the chat line has scrolled away.
 
 ## How it is put into the game
 
@@ -84,6 +86,9 @@ before the game is compiled. `mixins/e4steam/horizon-mixin.toml` declares:
 | `[[injection]] command` | HEAD of the `command` hook: takes `/steam …` out of chat before the server sees an unknown command |
 | `[[injection]] commands` | HEAD of the `commands` hook: adds `steam` to the chat box's completion list |
 | `[[injection]] frame` | HEAD of the `frame` hook: drains the Steam thread's output into chat |
+| `[[injection]] mods` | HEAD of the `mods` hook: pushes the mod's row into Options → Mods — its title and one-line state |
+| `[[injection]] settings` | HEAD of the `settings` hook: the page's button labels, re-asked when the page opens and after every click |
+| `[[injection]] press` | HEAD of the `settings_click` hook: runs the button the player pressed |
 
 Each injection calls a one-line private helper (`command.rs`, `commands.rs`, `frame.rs`) — the shape
 horizon-mixins requires — and the helper forwards to `crate::game::e4steam::on_*`. Those entry points
@@ -95,20 +100,44 @@ not thread-safe and `Runtime::tick` must keep running on the thread that owns th
 game loop only pushes commands into a channel and pulls lines back out. Nothing in the mod blocks
 the client.
 
+## The page in the pause menu
+
+**Esc → Options → Mods → e4steam → Settings** is what an ordinary player uses; `/steam` in chat stays
+for the ones who like commands. Horizon owns that screen — the mod only answers three questions: which
+row to list, which buttons to show, what a press means. Nothing is drawn by the mod, so the page is
+vanilla-shaped and needs no renderer hook, and it asks for no keybind rows.
+
+[`mixins/e4steam/engine/src/menu.rs`](mixins/e4steam/engine/src/menu.rs) holds that as a pure model:
+`rows(lang, prefs, view, lan_port)` turns the published state into labels and actions, and `press(…)`
+maps a button index back through the same function, so a label and its action cannot drift apart
+between the drawing and the click. The `View` it reads is written by the Steam thread when the state
+changes and only read by the game thread, so opening the page never waits on Steam.
+
+Two of Horizon's behaviours shape the model:
+
+- the line above the buttons is the mod list's title, taken when that list is built (at world start),
+  so it can lag behind the session — which is why the status row carries the live state in its label;
+- the buttons are re-asked when the page opens and after every click, so every label is rebuilt from
+  the current state — including the language the player just switched to.
+
+Language is the only thing a press keeps: `<config>/e4steam/lang` holds `en` or `ru`, in Horizon's own
+`native_config_dir()` beside its options. Together with the `steam_appid.txt` the session writes,
+those are the only files the mod leaves behind.
+
 ## Building and validating
 
 ```sh
-cargo test --workspace          # 85 tests; no hardware, no second Steam account
+cargo test --workspace          # 104 tests; no hardware, no second Steam account
 python tools/package.py         # -> target/e4steam-<ver>.hnmod and its sha256
 bash tools/validate.sh          # real horizon-mixins plan + apply on the pinned source
 ```
 
 `validate.sh` fetches Horizon and horizon-mixins at exactly the pinned commits into a cache folder
 (`~/.cache/e4steam-hz`, override with `HZ_WORK`; the bundle path with `E4STEAM_MODS`),
-runs `plan`, then `apply`, and prints the shape of the plan — it must be **3 injections**
-(`frame`, `command`, `commands`), **1 module** (`e4steam`), **1 crate** (`engine`) — and greps the
-staged source so you can see the injected module and helpers in `game.rs` and
-`game/native_hooks.rs`. Those two subcommands only transform source: nothing is compiled or run,
+runs `plan`, then `apply`, and prints the shape of the plan — it must be **6 injections**
+(`frame`, `command`, `commands`, `mods`, `settings`, `press`), **1 module** (`e4steam`), **1 crate**
+(`engine`) — and greps the staged source so you can see the injected module and helpers in `game.rs`
+and `game/native_hooks.rs`. Those two subcommands only transform source: nothing is compiled or run,
 which is why they need no trust flag. `horizon-mixins check` does compile the injected mod, and that
 is the player's call.
 
@@ -126,8 +155,11 @@ dependencies are forbidden; ids must be lowercase `[a-z0-9_]`; the manifest pin 
 
 1. Put the new commit in `[compatibility] horizon_revision` (`mixins/e4steam/horizon-mixin.toml`) and in
    `compatibility.json`, and refresh `source_sha256` for `crates/horizon-client/src/game.rs`.
-2. Check that `Game.lan` and the three hook signatures still exist — `command`/`commands` are API 35+
-   hooks, `frame` is v1.
+   `tools/validate.sh` re-fetches the export when its `.horizon-revision` file disagrees, so moving
+   the pin moves the source with it.
+2. Check that `Game.lan` and the six hook signatures still exist: `frame`, `command`, `commands`
+   (API 35), `mods`, `settings`, `settings_click` — all version 1, and all of them listed in the
+   pinned `native-hooks.json`, which `tools/package.py` matches the manifest against.
 3. `bash tools/validate.sh`, then `cargo test --workspace`.
 4. Bump `version` in `horizon-mixin.toml`, `python tools/package.py`, and publish the new `.hnmod` as a
    GitHub release asset. The registry takes a release with a `.hnmod` asset as a version.
@@ -144,10 +176,12 @@ guest whose version string differs is refused before any connection.
 
 ```
 mixins/e4steam/
-  horizon-mixin.toml     [mod], [compatibility], [[crate]], [[module]], 3 [[injection]]
+  horizon-mixin.toml     [mod], [compatibility], [[crate]], [[module]], 6 [[injection]]
   runtime.rs             the payload, emitted as crate::game::e4steam
-  command.rs commands.rs frame.rs   one private helper fn per injection
-  engine/                e4steam-engine: E4ST codec, Steamworks Flat API, bridge, /steam grammar
+  command.rs commands.rs frame.rs         one private helper fn per chat injection
+  mods.rs settings.rs press.rs           … and per page injection
+  engine/                e4steam-engine: E4ST codec, Steamworks Flat API, bridge,
+                         /steam grammar, and the page's rows and actions (menu.rs)
 compatibility.json       pins and the sha256 of game.rs
 tools/                   package.py (reproducible archive), validate.sh (plan + apply)
 check/                   the crate::game geometry fixture for cargo test

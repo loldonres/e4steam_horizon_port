@@ -2,10 +2,13 @@
 //!
 //! The Flat API is not thread-safe and `Runtime::tick` owns the whole Steam context, so the same
 //! thread must keep running it between the calls. This is that thread: commands arrive over a
-//! channel, everything a player should read leaves as a line, and neither side ever blocks.
+//! channel, everything a player should read leaves as a line, and neither side ever blocks. The
+//! mod's menu page reads the state the thread publishes next to those lines, because a button has to
+//! say what is true without waiting on Steam.
 
 use crate::address::SteamAddress;
 use crate::chan::{self, Receiver, Sender, TryRecvError};
+use crate::menu::{self, State, View};
 use crate::runtime::{self, Access, Runtime, Status, TICK};
 use crate::steam::Steam;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -186,6 +189,7 @@ pub struct Session {
     lines: Receiver<String>,
     worker: Mutex<Option<JoinHandle<()>>>,
     done: Arc<AtomicBool>,
+    view: menu::Shared,
 }
 
 impl Session {
@@ -194,10 +198,12 @@ impl Session {
         let (line_tx, line_rx) = chan::bounded(LINE_QUEUE);
         let done = Arc::new(AtomicBool::new(false));
         let finished = Arc::clone(&done);
+        let view = menu::shared();
+        let shared = Arc::clone(&view);
         let worker = std::thread::Builder::new()
             .name("e4steam".to_string())
             .spawn(move || {
-                run(command_rx, line_tx);
+                run(command_rx, line_tx, shared);
                 finished.store(true, Ordering::Release);
             })
             .expect("the e4steam thread always starts");
@@ -206,6 +212,7 @@ impl Session {
             lines: line_rx,
             worker: Mutex::new(Some(worker)),
             done,
+            view,
         }
     }
 
@@ -251,6 +258,12 @@ impl Session {
         self.give(Command::AskStatus)
     }
 
+    /// What the thread is doing right now, for the menu's labels. Never blocks: the page reads the
+    /// last state the thread left, which is at most one tick old.
+    pub fn view(&self) -> View {
+        menu::peek(&self.view)
+    }
+
     /// Everything said since the last call, oldest first. Never blocks.
     pub fn take_lines(&self) -> Vec<String> {
         let mut spoken = Vec::new();
@@ -277,6 +290,8 @@ impl Session {
                 let _ = thread.join();
             }
         }
+        // Nothing runs after this, and a page opened later must not keep promising a live lobby.
+        menu::publish(&self.view, View::default());
     }
 }
 
@@ -287,7 +302,7 @@ impl Drop for Session {
     }
 }
 
-fn run(commands: Receiver<Command>, lines: Sender<String>) {
+fn run(commands: Receiver<Command>, lines: Sender<String>, view: menu::Shared) {
     let mut world = World::default();
     loop {
         let mut quit = false;
@@ -317,9 +332,11 @@ fn run(commands: Receiver<Command>, lines: Sender<String>) {
         }
         if quit {
             world.stop(&lines);
+            menu::publish(&view, world.snapshot());
             return;
         }
         world.tick(&lines);
+        menu::publish(&view, world.snapshot());
         std::thread::sleep(TICK);
     }
 }
@@ -329,6 +346,8 @@ struct World {
     runtime: Option<Runtime>,
     bridges: usize,
     lobby: u64,
+    /// Why sharing last ended, in the thread's own words, for the menu to show under the buttons.
+    note: Option<String>,
 }
 
 impl World {
@@ -348,14 +367,18 @@ impl World {
                     port
                 }
                 Err(error) => {
+                    self.note = Some(error.clone());
                     say(lines, error);
                     return;
                 }
             },
         };
         let steam = match open_steam(lines) {
-            Some(steam) => steam,
-            None => return,
+            Ok(steam) => steam,
+            Err(reason) => {
+                self.note = Some(reason);
+                return;
+            }
         };
         let steam_id = steam.my_steam_id();
         let runtime = Runtime::host(steam, access, port, minecraft);
@@ -377,6 +400,7 @@ impl World {
         }
         self.bridges = 0;
         self.lobby = 0;
+        self.note = None;
         self.runtime = Some(runtime);
     }
 
@@ -389,17 +413,20 @@ impl World {
         lines: &Sender<String>,
     ) {
         let steam = match open_steam(lines) {
-            Some(steam) => steam,
-            None => return,
+            Ok(steam) => steam,
+            Err(reason) => {
+                self.note = Some(reason);
+                return;
+            }
         };
         let mut runtime = match (invite.as_deref(), lobby) {
             (Some(text), _) => match SteamAddress::try_parse(text.trim()) {
                 Some(target) => Runtime::guest(steam, target, lobby.unwrap_or(0), minecraft),
                 None => {
-                    say(
-                        lines,
-                        "that is not an e4steam invite; expected s-<steamid>-<token>.steam".to_string(),
-                    );
+                    let reason =
+                        "that is not an e4steam invite; expected s-<steamid>-<token>.steam";
+                    self.note = Some(reason.to_string());
+                    say(lines, reason.to_string());
                     return;
                 }
             },
@@ -407,7 +434,9 @@ impl World {
             (None, None) => Runtime::await_invite(steam, minecraft),
         };
         if let Err(error) = runtime.bind_local(local_port) {
-            say(lines, redact(&error));
+            let reason = redact(&error);
+            self.note = Some(reason.clone());
+            say(lines, reason);
             return;
         }
         say(
@@ -422,6 +451,7 @@ impl World {
         }
         self.bridges = 0;
         self.lobby = 0;
+        self.note = None;
         self.runtime = Some(runtime);
     }
 
@@ -432,6 +462,40 @@ impl World {
         }
         self.bridges = 0;
         self.lobby = 0;
+        self.note = None;
+    }
+
+    /// The state the menu page puts on its buttons: the same facts `status` says in chat.
+    fn snapshot(&self) -> View {
+        let Some(runtime) = &self.runtime else {
+            return View {
+                note: self.note.clone(),
+                ..View::default()
+            };
+        };
+        let host = runtime.is_host();
+        let state = if !runtime.is_running() {
+            State::Idle
+        } else if host {
+            State::Hosting
+        } else if runtime.awaits_invite() {
+            State::AwaitingInvite
+        } else {
+            State::Guest
+        };
+        View {
+            state,
+            access: runtime.access().unwrap_or_default(),
+            bridges: runtime.active_bridges(),
+            lobby: runtime.lobby(),
+            port: if host {
+                runtime.lan_port()
+            } else {
+                runtime.local_port()
+            },
+            invite: runtime.invite_endpoint(),
+            note: self.note.clone(),
+        }
     }
 
     fn status(&self, lines: &Sender<String>) {
@@ -481,19 +545,24 @@ impl World {
         if let Some(reason) = ended {
             self.stop(lines);
             if !reason.is_empty() {
-                say(lines, format!("reason: {}", redact(&reason)));
+                let reason = redact(&reason);
+                self.note = Some(reason.clone());
+                say(lines, format!("reason: {reason}"));
             }
         }
     }
 }
 
-fn open_steam(lines: &Sender<String>) -> Option<Steam> {
+/// Opens the Steam context, saying in chat what a player has to fix. The same words go back as the
+/// `Err`, so the menu's description can hold them after the chat line is gone.
+fn open_steam(lines: &Sender<String>) -> Result<Steam, String> {
     match Steam::init() {
-        Ok(steam) => Some(steam),
+        Ok(steam) => Ok(steam),
         Err(error) => {
-            say(lines, format!("Steam is not usable: {}", redact(&error)));
+            let reason = format!("Steam is not usable: {}", redact(&error));
+            say(lines, &reason);
             say(lines, "hint: start Steam, log in, and keep steam_api64.dll where the game finds it.");
-            None
+            Err(reason)
         }
     }
 }

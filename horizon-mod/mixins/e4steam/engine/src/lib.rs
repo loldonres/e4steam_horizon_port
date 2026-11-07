@@ -11,6 +11,7 @@ pub mod chan;
 pub mod dll;
 pub mod frame;
 pub mod lan;
+pub mod menu;
 pub mod queue;
 pub mod reset;
 pub mod rng;

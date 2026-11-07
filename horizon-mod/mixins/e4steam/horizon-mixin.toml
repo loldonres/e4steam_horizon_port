@@ -1,4 +1,4 @@
-# e4steam as a Horizon native mod: one support module, three hook points and the mod's own crate.
+# e4steam as a Horizon native mod: one support module, six hook points and the mod's own crate.
 #
 # The bundle folder is named after `[mod] id` (the registry finds it there), and the id takes only
 # lowercase letters, digits and `_`.
@@ -8,11 +8,12 @@ id = "e4steam"
 version = "0.1.0"
 priority = 100
 
-# The Nightly this was built and played on. Hook points keep their contract across releases, but the
-# payload also reads `Game`'s private `lan` field, which is not part of that contract — hence a commit
-# pin instead of `"hooks"`, so a drifted Horizon fails the plan instead of building something broken.
+# The Nightly this was built and played on (its hook points run to API 40). Hook points keep their
+# contract across releases, but the payload also reads `Game`'s private `lan` field, which is not part
+# of that contract — hence a commit pin instead of `"hooks"`, so a drifted Horizon fails the plan
+# instead of building something broken.
 [compatibility]
-horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
+horizon_revision = "aa27eca326db26e999d4e59d7899576016764b1e"
 
 # The protocol, the Steamworks binding and the bridge. Staged as a workspace member and added to
 # horizon-client's dependencies, so the game crate reaches it as `e4steam_engine`.
@@ -58,3 +59,40 @@ hook_version = 1
 kind = "HEAD"
 helper = "frame.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Options > Mods, opened from the pause menu, lists us with the state on its row.
+[[injection]]
+id = "mods"
+hook = "mods"
+hook_version = 1
+kind = "HEAD"
+helper = "mods.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "mods" },
+]
+
+# Our page's buttons, re-read when it opens and after every press.
+[[injection]]
+id = "settings"
+hook = "settings"
+hook_version = 1
+kind = "HEAD"
+helper = "settings.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "buttons", ty = "&mut Vec<String>", value = "buttons" },
+]
+
+# The button the player pressed, which is the whole menu: no chat command is needed to share a world.
+[[injection]]
+id = "press"
+hook = "settings_click"
+hook_version = 1
+kind = "HEAD"
+helper = "press.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "button", ty = "usize", value = "button" },
+]

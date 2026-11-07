@@ -8,14 +8,16 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # The pinned source and the built CLI live here; the repo moves, this cache should not.
 WORK=${HZ_WORK:-$HOME/.cache/e4steam-hz}
 MODS=${E4STEAM_MODS:-$HERE/mixins}
-HORIZON_REV=c9d474dd9116e84c243f8992d75c11314df56f06
+HORIZON_REV=aa27eca326db26e999d4e59d7899576016764b1e
 MIXINS_REV=d9c83d7096b7ea5b83678da2efdfd6161f74997e
 [ -d "$HOME/.cargo/bin" ] && export PATH="$HOME/.cargo/bin:$PATH"
 
 mkdir -p "$WORK"
 cd "$WORK"
 
-if [ ! -f src/.horizon-revision ]; then
+# The export is keyed by commit, so moving the pin moves the source with it instead of quietly
+# planning against whatever was fetched last.
+if [ ! -f src/.horizon-revision ] || [ "$(cat src/.horizon-revision)" != "$HORIZON_REV" ]; then
   echo "==> fetching the Horizon source at $HORIZON_REV"
   rm -rf src && mkdir src
   curl -sSL "https://codeload.github.com/horizon-rust/horizon/tar.gz/$HORIZON_REV" -o src.tar.gz
